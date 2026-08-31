@@ -1,0 +1,2066 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+>
+
+<title>Local Video Subtitle Player</title>
+
+
+<style>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: dark;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: #0b0d0f;
+    color: #f4f5f6;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+}
+
+body {
+    min-height: 100vh;
+}
+
+.wrap {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px;
+}
+
+
+/* =========================================================
+   SETUP
+========================================================= */
+
+.setup {
+    background: #15181c;
+    border: 1px solid #282e35;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.setup-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.setup-title {
+    min-width: 0;
+}
+
+.setup-title h2 {
+    font-size: 16px;
+    margin: 0;
+}
+
+.small {
+    font-size: 12px;
+    color: #858f9a;
+    margin-top: 2px;
+}
+
+.top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.top-actions .mode {
+    width: 265px;
+}
+
+.setup-body {
+    margin-top: 12px;
+}
+
+.setup-body.hidden {
+    display: none;
+}
+
+label {
+    font-size: 12px;
+    color: #aeb5bd;
+    display: block;
+    margin-top: 8px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+input,
+select {
+    width: 100%;
+    background: #0f1215;
+    color: #eee;
+    border: 1px solid #343b44;
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+input:focus,
+select:focus {
+    border-color: #55c7ce;
+}
+
+button {
+    border: 1px solid #3a424b;
+    background: #20252b;
+    color: #fff;
+    border-radius: 9px;
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #292f36;
+}
+
+.primary {
+    background: #15565b;
+    border-color: #2b9da4;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 9px;
+}
+
+.status {
+    font-size: 12px;
+    color: #8e98a3;
+    margin-top: 9px;
+    min-height: 18px;
+}
+
+
+/* =========================================================
+   WORKSPACE
+========================================================= */
+
+/*
+   IMPORTANT
+
+   We use FLEX instead of CSS GRID.
+
+   RIGHT:
+   Video     = 70%
+   Subtitle  = 30%
+
+   LEFT:
+   Subtitle  = 30%
+   Video     = 70%
+
+   This makes the video EXACTLY the same size
+   in both left and right modes.
+*/
+
+.workspace {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+
+/* =========================================================
+   RIGHT SIDE SUBTITLE
+========================================================= */
+
+.workspace.subtitle-right {
+
+    flex-direction: row;
+
+}
+
+.workspace.subtitle-right .player {
+
+    order: 1;
+
+    flex: 0 0 calc(70% - 6px);
+
+    width: calc(70% - 6px);
+
+    min-width: 0;
+
+}
+
+.workspace.subtitle-right .panel {
+
+    order: 2;
+
+    flex: 0 0 calc(30% - 6px);
+
+    width: calc(30% - 6px);
+
+    min-width: 0;
+
+}
+
+
+/* =========================================================
+   LEFT SIDE SUBTITLE
+========================================================= */
+
+.workspace.subtitle-left {
+
+    flex-direction: row;
+
+}
+
+.workspace.subtitle-left .panel {
+
+    order: 1;
+
+    flex: 0 0 calc(30% - 6px);
+
+    width: calc(30% - 6px);
+
+    min-width: 0;
+
+}
+
+.workspace.subtitle-left .player {
+
+    order: 2;
+
+    flex: 0 0 calc(70% - 6px);
+
+    width: calc(70% - 6px);
+
+    min-width: 0;
+
+}
+
+
+/* =========================================================
+   ON VIDEO ONLY
+========================================================= */
+
+.workspace.video-only {
+
+    display: block;
+
+    width: 100%;
+
+}
+
+.workspace.video-only .player {
+
+    width: 100%;
+
+    max-width: none;
+
+}
+
+.workspace.video-only .panel {
+
+    display: none;
+
+}
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+.player {
+
+    background: #14171b;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    border: 1px solid #252b32;
+
+    min-width: 0;
+
+}
+
+.video-wrap {
+
+    position: relative;
+
+    width: 100%;
+
+    background: #000;
+
+}
+
+video {
+
+    display: block;
+
+    width: 100%;
+
+    height: auto;
+
+    aspect-ratio: 16 / 9;
+
+    background: #000;
+
+    object-fit: contain;
+
+    max-height: 76vh;
+
+}
+
+.info {
+
+    padding: 9px 13px;
+
+    color: #9da6b0;
+
+    font-size: 12px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 8px;
+
+}
+
+
+/* =========================================================
+   VIDEO OVERLAY SUBTITLE
+========================================================= */
+
+.overlay-sub {
+
+    position: absolute;
+
+    left: 4%;
+
+    right: 4%;
+
+    bottom: 9%;
+
+    text-align: center;
+
+    pointer-events: none;
+
+    display: none;
+
+    z-index: 10;
+
+}
+
+.overlay-sub span {
+
+    display: inline-block;
+
+    max-width: 94%;
+
+    padding: 6px 11px;
+
+    background: rgba(0, 0, 0, 0.78);
+
+    border-radius: 4px;
+
+    color: #fff;
+
+    font-size:
+        clamp(15px, 2vw, 24px);
+
+    line-height: 1.35;
+
+    text-shadow:
+        0 1px 2px #000;
+
+}
+
+
+/* =========================================================
+   SUBTITLE PANEL
+========================================================= */
+
+.panel {
+
+    background: #15181c;
+
+    border: 1px solid #252b32;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    min-width: 0;
+
+}
+
+.head {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 12px 14px;
+
+    border-bottom:
+        1px solid #292f36;
+
+}
+
+.count {
+
+    color: #78d5da;
+
+    font-weight: 700;
+
+    font-size: 12px;
+
+}
+
+.subs {
+
+    height: calc(76vh - 45px);
+
+    max-height: calc(76vh - 45px);
+
+    overflow-y: auto;
+
+    padding: 5px;
+
+}
+
+.sub {
+
+    padding: 11px 12px;
+
+    border-left:
+        3px solid transparent;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+}
+
+.sub:hover {
+
+    background: #1b2026;
+
+}
+
+.sub.active {
+
+    background: #182127;
+
+    border-left-color:
+        #38bdc5;
+
+}
+
+.time {
+
+    font-size: 12px;
+
+    color: #7e8994;
+
+    margin-bottom: 4px;
+
+}
+
+.text {
+
+    font-size: 16px;
+
+    line-height: 1.35;
+
+}
+
+.empty {
+
+    text-align: center;
+
+    padding: 45px 18px;
+
+    color: #7f8994;
+
+}
+
+
+/* =========================================================
+   DESKTOP SAFETY
+
+   Prevent the side modes from ever wrapping.
+========================================================= */
+
+@media (min-width: 801px) {
+
+    .workspace {
+
+        flex-wrap: nowrap;
+
+    }
+
+    .workspace.subtitle-left,
+    .workspace.subtitle-right {
+
+        flex-wrap: nowrap;
+
+    }
+
+}
+
+
+/* =========================================================
+   TABLET / MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .workspace,
+    .workspace.subtitle-left,
+    .workspace.subtitle-right {
+
+        display: flex;
+
+        flex-direction: column;
+
+        width: 100%;
+
+        gap: 12px;
+
+    }
+
+
+    .workspace .player,
+    .workspace .panel {
+
+        order: initial;
+
+        flex: none;
+
+        width: 100%;
+
+        max-width: 100%;
+
+    }
+
+
+    .workspace .player {
+
+        order: 1;
+
+    }
+
+
+    .workspace .panel {
+
+        order: 2;
+
+    }
+
+
+    .subs {
+
+        height: 45vh;
+
+        max-height: 45vh;
+
+    }
+
+
+    video {
+
+        max-height: 55vh;
+
+    }
+
+
+    .top-actions .mode {
+
+        width: 220px;
+
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .wrap {
+
+        padding: 10px 8px;
+
+    }
+
+
+    .setup-top {
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+    }
+
+
+    .top-actions {
+
+        width: 100%;
+
+    }
+
+
+    .top-actions .mode {
+
+        flex: 1;
+
+        width: auto;
+
+    }
+
+
+    .row {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .controls {
+
+        align-items: stretch;
+
+    }
+
+
+    .text {
+
+        font-size: 15px;
+
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<div class="wrap">
+
+
+<!-- =======================================================
+     SETUP
+======================================================== -->
+
+<section class="setup">
+
+
+    <div class="setup-top">
+
+
+        <div class="setup-title">
+
+            <h2>
+                Local MP4 + SRT
+            </h2>
+
+        </div>
+
+
+        <!--
+            ALWAYS VISIBLE
+        -->
+
+        <div class="top-actions">
+
+
+            <div class="mode">
+
+                <select
+                    id="displayMode"
+                    aria-label="Subtitle display"
+                >
+
+                    <option value="right">
+                        Right side subtitle
+                    </option>
+
+                    <option value="left">
+                        Left side subtitle
+                    </option>
+
+                    <option value="overlay">
+                        On video only
+                    </option>
+
+                    <option value="both-right">
+                        On video and right side
+                    </option>
+
+                    <option value="both-left">
+                        On video and left side
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="toggleSetup"
+            >
+                Hide
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         SETUP BODY
+    ==================================================== -->
+
+    <div
+        id="setupBody"
+        class="setup-body"
+    >
+
+
+        <label for="videoPath">
+            MP4 path / filename
+        </label>
+
+
+        <div class="row">
+
+            <input
+                id="videoPath"
+                placeholder="example.mp4"
+            >
+
+
+            <button
+                type="button"
+                id="browseVideo"
+            >
+                Choose
+            </button>
+
+        </div>
+
+
+
+        <label for="srtPath">
+            SRT path / filename
+        </label>
+
+
+        <div class="row">
+
+            <input
+                id="srtPath"
+                placeholder="example.srt"
+            >
+
+
+            <button
+                type="button"
+                id="browseSrt"
+            >
+                Choose
+            </button>
+
+        </div>
+
+
+
+        <div class="controls">
+
+            <button
+                type="button"
+                class="primary"
+                id="load"
+            >
+                Load Video + Subtitles
+            </button>
+
+
+            <button
+                type="button"
+                id="clear"
+            >
+                Clear
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =======================================================
+     WORKSPACE
+======================================================== -->
+
+<main
+    id="workspace"
+    class="workspace subtitle-right"
+>
+
+
+    <!-- ===================================================
+         VIDEO
+    ==================================================== -->
+
+    <section class="player">
+
+
+        <div class="video-wrap">
+
+
+            <video
+                id="video"
+                controls
+                preload="metadata"
+            ></video>
+
+
+            <!-- OVERLAY -->
+
+            <div
+                id="overlaySub"
+                class="overlay-sub"
+            >
+
+                <span></span>
+
+            </div>
+
+
+        </div>
+
+
+
+        <div class="info">
+
+            <span id="name">
+                No video loaded
+            </span>
+
+
+            <span id="duration">
+                00:00
+            </span>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- ===================================================
+         SUBTITLES
+    ==================================================== -->
+
+    <section
+        class="panel"
+        id="subtitlePanel"
+    >
+
+
+        <div class="head">
+
+            <strong>
+                Subtitles
+            </strong>
+
+
+            <span
+                id="count"
+                class="count"
+            >
+                0/0
+            </span>
+
+        </div>
+
+
+
+        <div
+            id="subs"
+            class="subs"
+        >
+
+            <div class="empty">
+                Load an MP4 and its SRT.
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+</main>
+
+
+</div>
+
+
+
+<script>
+(() => {
+
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+const STORAGE_KEY =
+    "create_subs_player_settings_v3";
+
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const video =
+    document.getElementById("video");
+
+const videoPath =
+    document.getElementById("videoPath");
+
+const srtPath =
+    document.getElementById("srtPath");
+
+const loadBtn =
+    document.getElementById("load");
+
+const clearBtn =
+    document.getElementById("clear");
+
+const status =
+    document.getElementById("status");
+
+const subsEl =
+    document.getElementById("subs");
+
+const count =
+    document.getElementById("count");
+
+const nameEl =
+    document.getElementById("name");
+
+const durationEl =
+    document.getElementById("duration");
+
+const setupBody =
+    document.getElementById("setupBody");
+
+const toggleSetup =
+    document.getElementById("toggleSetup");
+
+const displayMode =
+    document.getElementById("displayMode");
+
+const subtitlePanel =
+    document.getElementById("subtitlePanel");
+
+const workspace =
+    document.getElementById("workspace");
+
+const overlay =
+    document.getElementById("overlaySub");
+
+const overlayText =
+    overlay.querySelector("span");
+
+
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+let cues = [];
+
+let activeIndex = -1;
+
+let videoObjectUrl = null;
+
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function esc(value) {
+
+    return String(value).replace(
+        /[&<>"']/g,
+        character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[character])
+    );
+
+}
+
+
+
+/* =========================================================
+   SRT TIME -> SECONDS
+========================================================= */
+
+function sec(value) {
+
+    const parts =
+        value
+            .trim()
+            .replace(",", ".")
+            .split(":")
+            .map(Number);
+
+
+    if (parts.length === 3) {
+
+        return (
+            parts[0] * 3600 +
+            parts[1] * 60 +
+            parts[2]
+        );
+
+    }
+
+
+    if (parts.length === 2) {
+
+        return (
+            parts[0] * 60 +
+            parts[1]
+        );
+
+    }
+
+
+    return 0;
+
+}
+
+
+
+/* =========================================================
+   FORMAT TIME
+========================================================= */
+
+function fmt(value) {
+
+    value =
+        Math.max(
+            0,
+            Math.floor(
+                Number(value) || 0
+            )
+        );
+
+
+    const hours =
+        Math.floor(
+            value / 3600
+        );
+
+
+    const minutes =
+        Math.floor(
+            (value % 3600) / 60
+        );
+
+
+    const seconds =
+        value % 60;
+
+
+    if (hours > 0) {
+
+        return (
+            String(hours).padStart(2, "0") +
+            ":" +
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0")
+        );
+
+    }
+
+
+    return (
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(seconds).padStart(2, "0")
+    );
+
+}
+
+
+
+/* =========================================================
+   PARSE SRT
+========================================================= */
+
+function parseSrt(text) {
+
+    const blocks =
+        text
+            .replace(/\r/g, "")
+            .replace(/^\uFEFF/, "")
+            .split(/\n\s*\n/);
+
+
+    const result = [];
+
+
+    for (const block of blocks) {
+
+        const lines =
+            block.split("\n");
+
+
+        const timeIndex =
+            lines.findIndex(
+                line =>
+                    line.includes("-->")
+            );
+
+
+        if (timeIndex < 0)
+            continue;
+
+
+        const match =
+            lines[timeIndex].match(
+                /(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}|\d{1,2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}|\d{1,2}:\d{2}[,.]\d{1,3})/
+            );
+
+
+        if (!match)
+            continue;
+
+
+        const subtitleText =
+            lines
+                .slice(timeIndex + 1)
+                .join("\n")
+                .trim();
+
+
+        if (!subtitleText)
+            continue;
+
+
+        result.push({
+
+            start:
+                sec(match[1]),
+
+            end:
+                sec(match[2]),
+
+            text:
+                subtitleText
+
+        });
+
+    }
+
+
+    return result;
+
+}
+
+
+
+/* =========================================================
+   RENDER SUBTITLES
+========================================================= */
+
+function render() {
+
+    if (!cues.length) {
+
+        subsEl.innerHTML =
+            '<div class="empty">No subtitle entries found.</div>';
+
+        count.textContent =
+            "0/0";
+
+        return;
+
+    }
+
+
+    subsEl.innerHTML =
+        cues
+            .map(
+                (cue, index) => `
+
+                    <div
+                        class="sub"
+                        data-i="${index}"
+                    >
+
+                        <div class="time">
+                            ${fmt(cue.start)}
+                        </div>
+
+                        <div class="text">
+                            ${esc(cue.text).replace(
+                                /\n/g,
+                                "<br>"
+                            )}
+                        </div>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+    subsEl
+        .querySelectorAll(".sub")
+        .forEach(element => {
+
+            element.addEventListener(
+                "click",
+                () => {
+
+                    const index =
+                        Number(
+                            element.dataset.i
+                        );
+
+
+                    video.currentTime =
+                        cues[index].start;
+
+
+                    video.play()
+                        .catch(() => {});
+
+                }
+            );
+
+        });
+
+}
+
+
+
+/* =========================================================
+   DISPLAY MODE
+========================================================= */
+
+function updateMode() {
+
+    const mode =
+        displayMode.value;
+
+
+    /*
+       Remove every previous layout class.
+    */
+
+    workspace.classList.remove(
+        "subtitle-right",
+        "subtitle-left",
+        "video-only"
+    );
+
+
+    /*
+       Reset subtitle panel.
+    */
+
+    subtitlePanel.style.display =
+        "";
+
+
+    /*
+       Reset overlay.
+    */
+
+    overlay.style.display =
+        "none";
+
+
+    /* =====================================================
+       RIGHT SIDE
+    ===================================================== */
+
+    if (mode === "right") {
+
+        workspace.classList.add(
+            "subtitle-right"
+        );
+
+    }
+
+
+    /* =====================================================
+       LEFT SIDE
+    ===================================================== */
+
+    else if (mode === "left") {
+
+        workspace.classList.add(
+            "subtitle-left"
+        );
+
+    }
+
+
+    /* =====================================================
+       VIDEO ONLY
+    ===================================================== */
+
+    else if (mode === "overlay") {
+
+        workspace.classList.add(
+            "video-only"
+        );
+
+
+        subtitlePanel.style.display =
+            "none";
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+
+    /* =====================================================
+       VIDEO + RIGHT
+    ===================================================== */
+
+    else if (mode === "both-right") {
+
+        workspace.classList.add(
+            "subtitle-right"
+        );
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+
+    /* =====================================================
+       VIDEO + LEFT
+    ===================================================== */
+
+    else if (mode === "both-left") {
+
+        workspace.classList.add(
+            "subtitle-left"
+        );
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   SAVE SETTINGS
+========================================================= */
+
+function saveSettings() {
+
+    try {
+
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+
+                videoPath:
+                    videoPath.value.trim(),
+
+                srtPath:
+                    srtPath.value.trim(),
+
+                displayMode:
+                    displayMode.value
+
+            })
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Could not save settings.",
+            error
+        );
+
+    }
+
+}
+
+
+
+/* =========================================================
+   LOAD SETTINGS
+========================================================= */
+
+function loadSettings() {
+
+    try {
+
+        const raw =
+            localStorage.getItem(
+                STORAGE_KEY
+            );
+
+
+        if (!raw)
+            return;
+
+
+        const settings =
+            JSON.parse(raw);
+
+
+        if (settings.videoPath) {
+
+            videoPath.value =
+                settings.videoPath;
+
+        }
+
+
+        if (settings.srtPath) {
+
+            srtPath.value =
+                settings.srtPath;
+
+        }
+
+
+        if (settings.displayMode) {
+
+            displayMode.value =
+                settings.displayMode;
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Could not restore settings.",
+            error
+        );
+
+    }
+
+}
+
+
+
+/* =========================================================
+   ACTIVE SUBTITLE
+========================================================= */
+
+function updateActive() {
+
+    if (!cues.length)
+        return;
+
+
+    const currentTime =
+        video.currentTime;
+
+
+    let index = -1;
+
+
+    for (
+        let i = 0;
+        i < cues.length;
+        i++
+    ) {
+
+        if (
+            currentTime >= cues[i].start &&
+            currentTime < cues[i].end
+        ) {
+
+            index = i;
+
+            break;
+
+        }
+
+    }
+
+
+    if (index === activeIndex)
+        return;
+
+
+    activeIndex =
+        index;
+
+
+    subsEl
+        .querySelectorAll(".sub")
+        .forEach(
+            (element, i) => {
+
+                element.classList.toggle(
+                    "active",
+                    i === index
+                );
+
+            }
+        );
+
+
+    if (index >= 0) {
+
+        count.textContent =
+            `${index + 1}/${cues.length}`;
+
+
+        overlayText.innerHTML =
+            esc(cues[index].text)
+                .replace(
+                    /\n/g,
+                    "<br>"
+                );
+
+
+        const element =
+            subsEl.querySelector(
+                `[data-i="${index}"]`
+            );
+
+
+        if (element) {
+
+            element.scrollIntoView({
+                block: "nearest",
+                behavior: "smooth"
+            });
+
+        }
+
+    }
+
+    else {
+
+        overlayText.textContent =
+            "";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   CLEAN PATH
+========================================================= */
+
+function cleanPath(path) {
+
+    return path
+        .trim()
+        .replace(
+            /^["']|["']$/g,
+            ""
+        );
+
+}
+
+
+
+/* =========================================================
+   LOAD VIDEO + SRT
+========================================================= */
+
+async function loadFiles() {
+
+    const videoFile =
+        cleanPath(
+            videoPath.value
+        );
+
+
+    const subtitleFile =
+        cleanPath(
+            srtPath.value
+        );
+
+
+    if (
+        !videoFile ||
+        !subtitleFile
+    ) {
+
+        status.textContent =
+            "Please enter both an MP4 and an SRT filename.";
+
+        return;
+
+    }
+
+
+    saveSettings();
+
+
+    status.textContent =
+        "Loading video and subtitles...";
+
+
+    if (videoObjectUrl) {
+
+        URL.revokeObjectURL(
+            videoObjectUrl
+        );
+
+        videoObjectUrl =
+            null;
+
+    }
+
+
+    activeIndex =
+        -1;
+
+
+    /*
+       Load video.
+    */
+
+    video.src =
+        videoFile;
+
+
+    nameEl.textContent =
+        videoFile
+            .split("/")
+            .pop();
+
+
+    try {
+
+        const response =
+            await fetch(
+                subtitleFile
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+
+        }
+
+
+        const text =
+            await response.text();
+
+
+        cues =
+            parseSrt(text);
+
+
+        render();
+
+
+        updateMode();
+
+
+        status.textContent =
+            `Loaded ${cues.length} subtitle entries.`;
+
+    }
+
+    catch (error) {
+
+        cues = [];
+
+
+        render();
+
+
+        status.textContent =
+            "Could not load the SRT. Check the filename/path.";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   HIDE / SHOW
+========================================================= */
+
+toggleSetup.addEventListener(
+    "click",
+    () => {
+
+        const hidden =
+            setupBody.classList.toggle(
+                "hidden"
+            );
+
+
+        toggleSetup.textContent =
+            hidden
+                ? "Show"
+                : "Hide";
+
+    }
+);
+
+
+
+/* =========================================================
+   MODE CHANGE
+========================================================= */
+
+displayMode.addEventListener(
+    "change",
+    () => {
+
+        updateMode();
+
+        saveSettings();
+
+    }
+);
+
+
+
+/* =========================================================
+   SAVE PATHS
+========================================================= */
+
+videoPath.addEventListener(
+    "input",
+    saveSettings
+);
+
+
+srtPath.addEventListener(
+    "input",
+    saveSettings
+);
+
+
+
+/* =========================================================
+   LOAD
+========================================================= */
+
+loadBtn.addEventListener(
+    "click",
+    loadFiles
+);
+
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+clearBtn.addEventListener(
+    "click",
+    () => {
+
+        video.pause();
+
+
+        video.removeAttribute(
+            "src"
+        );
+
+
+        video.load();
+
+
+        cues = [];
+
+
+        activeIndex =
+            -1;
+
+
+        render();
+
+
+        count.textContent =
+            "0/0";
+
+
+        nameEl.textContent =
+            "No video loaded";
+
+
+        durationEl.textContent =
+            "00:00";
+
+
+        overlayText.textContent =
+            "";
+
+
+        status.textContent =
+            "Ready.";
+
+    }
+);
+
+
+
+/* =========================================================
+   VIDEO CHOOSER
+========================================================= */
+
+document
+    .getElementById("browseVideo")
+    .addEventListener(
+        "click",
+        () => {
+
+            const input =
+                document.createElement(
+                    "input"
+                );
+
+
+            input.type =
+                "file";
+
+
+            input.accept =
+                "video/*";
+
+
+            input.onchange =
+                () => {
+
+                    if (!input.files[0])
+                        return;
+
+
+                    if (videoObjectUrl) {
+
+                        URL.revokeObjectURL(
+                            videoObjectUrl
+                        );
+
+                    }
+
+
+                    videoObjectUrl =
+                        URL.createObjectURL(
+                            input.files[0]
+                        );
+
+
+                    video.src =
+                        videoObjectUrl;
+
+
+                    videoPath.value =
+                        input.files[0].name;
+
+
+                    nameEl.textContent =
+                        input.files[0].name;
+
+
+                    saveSettings();
+
+
+                    status.textContent =
+                        "Video selected locally.";
+
+                };
+
+
+            input.click();
+
+        }
+    );
+
+
+
+/* =========================================================
+   SRT CHOOSER
+========================================================= */
+
+document
+    .getElementById("browseSrt")
+    .addEventListener(
+        "click",
+        () => {
+
+            const input =
+                document.createElement(
+                    "input"
+                );
+
+
+            input.type =
+                "file";
+
+
+            input.accept =
+                ".srt,text/plain";
+
+
+            input.onchange =
+                async () => {
+
+                    if (!input.files[0])
+                        return;
+
+
+                    cues =
+                        parseSrt(
+                            await input.files[0].text()
+                        );
+
+
+                    srtPath.value =
+                        input.files[0].name;
+
+
+                    render();
+
+
+                    saveSettings();
+
+
+                    status.textContent =
+                        `Loaded ${cues.length} subtitle entries from ${input.files[0].name}.`;
+
+                };
+
+
+            input.click();
+
+        }
+    );
+
+
+
+/* =========================================================
+   VIDEO METADATA
+========================================================= */
+
+video.addEventListener(
+    "loadedmetadata",
+    () => {
+
+        durationEl.textContent =
+            fmt(video.duration);
+
+    }
+);
+
+
+
+/* =========================================================
+   VIDEO TIME
+========================================================= */
+
+video.addEventListener(
+    "timeupdate",
+    updateActive
+);
+
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+loadSettings();
+
+updateMode();
+
+
+})();
+</script>
+
+</body>
+</html>
