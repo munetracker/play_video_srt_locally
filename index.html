@@ -790,11 +790,6 @@ video {
 
         <div class="file-field">
 
-            <label for="videoPath">
-                MP4 path
-            </label>
-
-
             <div class="input-row">
 
                 <input
@@ -819,11 +814,6 @@ video {
         <!-- SRT -->
 
         <div class="file-field">
-
-            <label for="srtPath">
-                SRT path
-            </label>
-
 
             <div class="input-row">
 
@@ -888,16 +878,6 @@ video {
 
 
     </div>
-
-
-    <div
-        id="status"
-        class="status"
-        aria-live="polite"
-    >
-        Select an MP4 and SRT, then load.
-    </div>
-
 
 </section>
 
@@ -1033,9 +1013,6 @@ video {
 
     const clearBtn =
         document.getElementById("clear");
-
-    const status =
-        document.getElementById("status");
 
     const subsEl =
         document.getElementById("subs");
@@ -1646,29 +1623,6 @@ video {
          */
 
 
-        if (!selectedVideoFile) {
-
-            status.textContent =
-                "Please choose an MP4 file.";
-
-            return;
-
-        }
-
-
-        if (!selectedSrtFile) {
-
-            status.textContent =
-                "Please choose an SRT file.";
-
-            return;
-
-        }
-
-
-        status.textContent =
-            "Loading local video and subtitles...";
-
 
         /*
          * Release old object URL.
@@ -1740,10 +1694,6 @@ video {
             activeIndex =
                 -1;
 
-
-            status.textContent =
-                `Loaded ${cues.length} subtitle entries.`;
-
         }
         catch (error) {
 
@@ -1754,10 +1704,6 @@ video {
 
 
             render();
-
-
-            status.textContent =
-                "Could not read the selected SRT file.";
 
         }
 
@@ -1840,10 +1786,6 @@ video {
                             selectedVideoFile.name;
 
 
-                        status.textContent =
-                            `MP4 selected: ${selectedVideoFile.name}`;
-
-
                         saveSettings();
 
                     };
@@ -1907,17 +1849,11 @@ video {
                             render();
 
 
-                            status.textContent =
-                                `SRT selected: ${selectedSrtFile.name} — ${cues.length} subtitles`;
-
                         }
                         catch (error) {
 
                             console.error(error);
 
-
-                            status.textContent =
-                                "Could not read the SRT.";
 
                         }
 
@@ -2007,10 +1943,6 @@ video {
             overlayText.textContent =
                 "";
 
-
-            status.textContent =
-                "Ready.";
-
         }
     );
 
@@ -2082,10 +2014,6 @@ video {
                 "Video error:",
                 error
             );
-
-
-            status.textContent =
-                "The selected video could not be played. Check that it is a supported MP4/H.264 video.";
 
         }
     );
