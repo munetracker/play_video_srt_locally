@@ -3,13 +3,14 @@ import sys
 import os
 import subprocess
 import time
+import threading
 
 
 # ============================================================
 # Configuration
 # ============================================================
 
-MODEL_SIZE = "base"
+MODEL_SIZE = "small"
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
@@ -19,6 +20,7 @@ COMPUTE_TYPE = "int8"
 # ============================================================
 
 if len(sys.argv) < 2:
+
     print("Usage:")
     print('  python3 transcribe.py "video.mp4"')
     sys.exit(1)
@@ -32,10 +34,12 @@ video = sys.argv[1]
 # ============================================================
 
 if not os.path.isfile(video):
+
     print()
-    print(f"ERROR: File not found:")
+    print("ERROR: File not found:")
     print(video)
     print()
+
     sys.exit(1)
 
 
@@ -46,6 +50,7 @@ if not os.path.isfile(video):
 def get_duration(filename):
 
     try:
+
         result = subprocess.run(
             [
                 "ffprobe",
@@ -61,12 +66,16 @@ def get_duration(filename):
             text=True
         )
 
-        return float(result.stdout.strip())
+        return float(
+            result.stdout.strip()
+        )
 
     except Exception as e:
 
         print()
-        print("ERROR: Could not determine video duration.")
+        print(
+            "ERROR: Could not determine video duration."
+        )
         print(e)
         print()
 
@@ -82,13 +91,94 @@ duration = get_duration(video)
 
 def format_time(seconds):
 
-    seconds = max(0, int(seconds))
+    seconds = max(
+        0,
+        int(seconds)
+    )
 
     hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
+
+    minutes = (
+        seconds % 3600
+    ) // 60
+
     secs = seconds % 60
 
-    return f"{hours:02}:{minutes:02}:{secs:02}"
+    return (
+        f"{hours:02}:"
+        f"{minutes:02}:"
+        f"{secs:02}"
+    )
+
+
+# ============================================================
+# Animated indicator
+# ============================================================
+
+spinner_running = False
+
+
+def spinner(message):
+
+    global spinner_running
+
+    symbols = [
+        "⠋",
+        "⠙",
+        "⠹",
+        "⠸",
+        "⠼",
+        "⠴",
+        "⠦",
+        "⠧",
+        "⠇",
+        "⠏"
+    ]
+
+    index = 0
+
+    while spinner_running:
+
+        print(
+            f"\r{symbols[index % len(symbols)]} {message}",
+            end="",
+            flush=True
+        )
+
+        index += 1
+
+        time.sleep(0.1)
+
+
+    print(
+        "\r" + " " * 70 + "\r",
+        end="",
+        flush=True
+    )
+
+
+def start_spinner(message):
+
+    global spinner_running
+
+    spinner_running = True
+
+    thread = threading.Thread(
+        target=spinner,
+        args=(message,),
+        daemon=True
+    )
+
+    thread.start()
+
+    return thread
+
+
+def stop_spinner():
+
+    global spinner_running
+
+    spinner_running = False
 
 
 # ============================================================
@@ -105,32 +195,74 @@ def show_progress(current):
     if duration <= 0:
         return
 
-    percent = min(100.0, max(0.0, (current / duration) * 100))
+
+    percent = min(
+        100.0,
+        max(
+            0.0,
+            (current / duration) * 100
+        )
+    )
+
 
     bar_length = 30
 
-    filled = int(bar_length * percent / 100)
+
+    filled = int(
+        bar_length *
+        percent /
+        100
+    )
+
 
     bar = (
         "█" * filled
-        + "░" * (bar_length - filled)
+        +
+        "░" *
+        (
+            bar_length -
+            filled
+        )
     )
 
-    elapsed = time.time() - start_time
 
+    elapsed = (
+        time.time() -
+        start_time
+    )
+
+
+    # ========================================================
     # Estimate remaining time
+    # ========================================================
+
     if percent > 0:
-        total_estimated = elapsed / (percent / 100)
-        remaining = max(0, total_estimated - elapsed)
+
+        total_estimated = (
+            elapsed /
+            (percent / 100)
+        )
+
+        remaining = max(
+            0,
+            total_estimated -
+            elapsed
+        )
+
     else:
+
         remaining = 0
+
 
     print(
         f"\r[{bar}] "
         f"{percent:6.2f}% "
-        f"{format_time(current)} / {format_time(duration)} "
-        f"| Elapsed: {format_time(elapsed)} "
-        f"| ETA: {format_time(remaining)}",
+        f"{format_time(current)} / "
+        f"{format_time(duration)} "
+        f"| Elapsed: "
+        f"{format_time(elapsed)} "
+        f"| ETA: "
+        f"{format_time(remaining)}",
         end="",
         flush=True
     )
@@ -141,33 +273,96 @@ def show_progress(current):
 # ============================================================
 
 print()
-print("==============================================")
-print("              VIDEO TO SRT")
-print("==============================================")
-print()
 
-print(f"Video    : {os.path.basename(video)}")
-print(f"Duration : {format_time(duration)}")
-print(f"Model    : {MODEL_SIZE}")
-print(f"Device   : {DEVICE}")
-print()
-
-# ============================================================
-# Load Whisper
-# ============================================================
-
-print("Loading Whisper model...")
-print()
-
-model = WhisperModel(
-    MODEL_SIZE,
-    device=DEVICE,
-    compute_type=COMPUTE_TYPE
+print(
+    "=============================================="
 )
 
-print("Model loaded.")
+print(
+    "              VIDEO TO SRT"
+)
+
+print(
+    "=============================================="
+)
+
 print()
-print("Starting transcription...")
+
+
+print(
+    f"Video    : "
+    f"{os.path.basename(video)}"
+)
+
+print(
+    f"Duration : "
+    f"{format_time(duration)}"
+)
+
+print(
+    f"Model    : "
+    f"{MODEL_SIZE}"
+)
+
+print(
+    f"Device   : "
+    f"{DEVICE}"
+)
+
+print()
+
+
+# ============================================================
+# Load Whisper model
+# ============================================================
+
+print(
+    "Loading Whisper model..."
+)
+
+print()
+
+
+model_start = time.time()
+
+
+spinner_thread = start_spinner(
+    "Loading Whisper model..."
+)
+
+
+try:
+
+    model = WhisperModel(
+        MODEL_SIZE,
+        device=DEVICE,
+        compute_type=COMPUTE_TYPE
+    )
+
+finally:
+
+    stop_spinner()
+
+    spinner_thread.join(
+        timeout=0.5
+    )
+
+
+model_load_time = (
+    time.time() -
+    model_start
+)
+
+
+print(
+    "✓ Model loaded successfully."
+)
+
+print(
+    f"  Model load time: "
+    f"{format_time(model_load_time)}"
+)
+
 print()
 
 
@@ -175,12 +370,24 @@ print()
 # Start transcription
 # ============================================================
 
+print(
+    "Starting transcription..."
+)
+
+print()
+
+
 start_time = time.time()
 
+
 segments, info = model.transcribe(
+
     video,
+
     beam_size=5,
+
     vad_filter=True
+
 )
 
 
@@ -188,7 +395,10 @@ segments, info = model.transcribe(
 # Output SRT filename
 # ============================================================
 
-output = os.path.splitext(video)[0] + ".srt"
+output = (
+    os.path.splitext(video)[0]
+    + ".srt"
+)
 
 
 # ============================================================
@@ -197,33 +407,55 @@ output = os.path.splitext(video)[0] + ".srt"
 
 def timestamp(seconds):
 
-    hours = int(seconds // 3600)
+    hours = int(
+        seconds // 3600
+    )
+
 
     minutes = int(
         (seconds % 3600) // 60
     )
 
-    secs = int(seconds % 60)
+
+    secs = int(
+        seconds % 60
+    )
+
 
     milliseconds = int(
         round(
-            (seconds - int(seconds)) * 1000
+            (
+                seconds -
+                int(seconds)
+            ) * 1000
         )
     )
 
-    # Handle rounding to 1000 ms
+
+    # ========================================================
+    # Handle rounding
+    # ========================================================
+
     if milliseconds >= 1000:
 
         milliseconds = 0
+
         secs += 1
 
+
         if secs >= 60:
+
             secs = 0
+
             minutes += 1
 
+
         if minutes >= 60:
+
             minutes = 0
+
             hours += 1
+
 
     return (
         f"{hours:02}:"
@@ -246,31 +478,42 @@ with open(
     encoding="utf-8"
 ) as f:
 
-    for segment_count, segment in enumerate(
-        segments,
-        start=1
-    ):
+
+    for segment in segments:
+
 
         start = segment.start
+
         end = segment.end
 
         text = segment.text.strip()
 
+
         if not text:
+
             continue
+
+
+        # Correct sequential SRT numbering
+
+        segment_count += 1
+
 
         f.write(
             f"{segment_count}\n"
         )
+
 
         f.write(
             f"{timestamp(start)} --> "
             f"{timestamp(end)}\n"
         )
 
+
         f.write(
             f"{text}\n\n"
         )
+
 
         show_progress(end)
 
@@ -279,26 +522,70 @@ with open(
 # Finished
 # ============================================================
 
-elapsed = time.time() - start_time
+elapsed = (
+    time.time() -
+    start_time
+)
+
 
 print()
 print()
 
-print("==============================================")
-print("                 DONE!")
-print("==============================================")
+
+print(
+    "=============================================="
+)
+
+print(
+    "                 ✓ DONE!"
+)
+
+print(
+    "=============================================="
+)
 
 print()
 
-print(f"Video       : {os.path.basename(video)}")
-print(f"SRT         : {os.path.basename(output)}")
-print(f"Subtitles   : {segment_count}")
-print(f"Processing  : {format_time(elapsed)}")
+
+print(
+    f"Video       : "
+    f"{os.path.basename(video)}"
+)
+
+print(
+    f"SRT         : "
+    f"{os.path.basename(output)}"
+)
+
+print(
+    f"Subtitles   : "
+    f"{segment_count}"
+)
+
+print(
+    f"Processing  : "
+    f"{format_time(elapsed)}"
+)
+
+print(
+    f"Language    : "
+    f"{info.language}"
+)
+
+print(
+    f"Probability : "
+    f"{info.language_probability:.2%}"
+)
 
 print()
 
-print("SRT saved to:")
 
-print(output)
+print(
+    "SRT saved to:"
+)
+
+print(
+    output
+)
 
 print()
