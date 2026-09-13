@@ -1,0 +1,2409 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+
+>
+
+<title>Video SRT Player</title>
+
+<style>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: dark;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+
+    background: #0b0d0f;
+    color: #f4f5f6;
+
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+}
+
+body {
+    min-height: 100vh;
+}
+
+.wrap {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px;
+}
+
+
+/* =========================================================
+   SETUP
+========================================================= */
+
+.setup {
+    background: #15181c;
+    border: 1px solid #282e35;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+
+/* =========================================================
+   SETUP CONTROLS
+========================================================= */
+
+.setup-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+
+.file-field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.input-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+}
+
+.input-row input {
+    min-width: 0;
+    flex: 1;
+}
+
+input,
+select {
+    width: 100%;
+
+    background: #0f1215;
+    color: #eee;
+
+    border: 1px solid #343b44;
+    border-radius: 9px;
+
+    padding: 10px 12px;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+input:focus,
+select:focus {
+    border-color: #55c7ce;
+}
+
+button {
+    border: 1px solid #3a424b;
+
+    background: #20252b;
+
+    color: #fff;
+
+    border-radius: 9px;
+
+    padding: 10px 14px;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+}
+
+button:hover {
+    background: #292f36;
+}
+
+.primary {
+    background: #15565b;
+    border-color: #2b9da4;
+}
+
+.setup-row > button {
+    flex-shrink: 0;
+}
+
+.setup-row > select {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   WORKSPACE
+========================================================= */
+
+.workspace {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+
+/* =========================================================
+   RIGHT SUBTITLE
+========================================================= */
+
+.workspace.subtitle-right {
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+
+.workspace.subtitle-right .player {
+    order: 1;
+
+    flex: 0 0 calc(35% - 6px);
+    width: calc(35% - 6px);
+
+    min-width: 0;
+}
+
+.workspace.subtitle-right .panel {
+    order: 2;
+
+    flex: 0 0 calc(65% - 6px);
+    width: calc(65% - 6px);
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   LEFT SUBTITLE
+========================================================= */
+
+.workspace.subtitle-left {
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+
+.workspace.subtitle-left .panel {
+    order: 1;
+
+    flex: 0 0 calc(30% - 6px);
+    width: calc(30% - 6px);
+
+    min-width: 0;
+}
+
+.workspace.subtitle-left .player {
+    order: 2;
+
+    flex: 0 0 calc(70% - 6px);
+    width: calc(70% - 6px);
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   VIDEO ONLY
+========================================================= */
+
+.workspace.video-only {
+    display: block;
+    width: 100%;
+}
+
+.workspace.video-only .player {
+    width: 100%;
+    max-width: none;
+}
+
+.workspace.video-only .panel {
+    display: none;
+}
+
+
+/* =========================================================
+   KARAOKE MODE
+========================================================= */
+
+/* Desktop: video on the LEFT, karaoke title/lyrics on the RIGHT */
+.workspace.karaoke-mode {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.workspace.karaoke-mode .player {
+    order: 1;
+    flex: 0 0 calc(35% - 6px);
+    width: calc(35% - 6px);
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    border-radius: 12px;
+}
+
+
+/* Hide normal subtitle panel */
+
+.workspace.karaoke-mode .panel {
+    display: none;
+}
+
+
+/* Video area on the left */
+.workspace.karaoke-mode video {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    object-fit: contain;
+}
+
+
+/* =========================================================
+   KARAOKE DISPLAY
+========================================================= */
+
+.karaoke-display {
+    display: none;
+    width: 100%;
+    min-height: 0;
+    padding: 18px 20px;
+    background: #111519;
+    border: 1px solid #252b32;
+    border-radius: 14px;
+    text-align: center;
+    align-items: stretch;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+}
+
+.workspace.karaoke-mode .karaoke-display {
+    display: flex;
+    order: 2;
+    flex: 0 0 calc(65% - 6px);
+    width: calc(65% - 6px);
+    min-width: 0;
+    height: auto;
+    align-self: stretch;
+}
+
+/* SRT-style lyric rows */
+.karaoke-context,
+.karaoke-current {
+    width: 100%;
+    max-width: none;
+    padding: 13px 14px;
+    border-bottom: 1px solid #30363d;
+    color: #68737e;
+    font-size: clamp(17px, 2.2vw, 27px);
+    line-height: 1.35;
+    min-height: 0;
+    text-align: center;
+}
+
+.karaoke-current {
+    color: #ffffff;
+    font-size: clamp(25px, 3.5vw, 46px);
+    font-weight: 800;
+    background: #182127;
+    border-top: 1px solid #30363d;
+    border-bottom: 2px solid #38bdc5;
+    padding: 18px 14px;
+}
+
+.karaoke-time {
+    padding-top: 10px;
+    color: #687780;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   KARAOKE WORD HIGHLIGHT
+========================================================= */
+
+.karaoke-current .karaoke-word {
+    display: inline-block;
+    color: #ffffff;
+    transition:
+        color 0.12s ease,
+        text-shadow 0.12s ease,
+        transform 0.12s ease;
+}
+
+.karaoke-current .karaoke-word.sung {
+    color: #38bdc5;
+}
+
+.karaoke-current .karaoke-word.current {
+    color: #ffd84d;
+    text-shadow:
+        0 0 8px rgba(255, 216, 77, 0.65),
+        0 3px 14px rgba(0, 0, 0, 0.9);
+    transform: scale(1.03);
+}
+
+.karaoke-current .karaoke-space {
+    white-space: pre;
+}
+
+
+/* =========================================================
+   VIDEO TOOLBAR
+========================================================= */
+.video-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    background: #101317;
+    border-top: 1px solid #252b32;
+}
+
+.video-name {
+    order: 1;
+    margin-left: auto;
+    margin-right: 0;
+    flex: 0 1 220px;
+    min-width: 80px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #c6ccd2;
+    font-size: 13px;
+}
+
+#playPauseBtn,
+#stopBtn,
+.volume-control,
+.video-time {
+    order: 2;
+}
+
+.video-toolbar {
+    justify-content: flex-end;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 280px;
+    min-width: 150px;
+}
+
+.volume-control input {
+    flex: 1;
+    min-width: 70px;
+}
+
+.video-time {
+    flex: 0 0 auto;
+    color: #aeb5bc;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .workspace.karaoke-mode {
+        flex-direction: column;
+    }
+
+    .workspace.karaoke-mode .player,
+    .workspace.karaoke-mode .karaoke-display {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+
+    .workspace.karaoke-mode video {
+        max-height: 45vh;
+    }
+}
+
+@media (max-width: 700px) {
+    .video-toolbar {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .video-name {
+        flex: 1 1 100%;
+        margin-left: 0;
+        margin-right: 0;
+        order: 1;
+    }
+
+    #playPauseBtn,
+    #stopBtn,
+    .volume-control,
+    .video-time {
+        order: 2;
+    }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrap">
+
+<!-- =======================================================
+     FILE CONTROLS
+======================================================== -->
+
+<section class="setup">
+
+<div class="setup-row">
+
+
+    <!-- MP4 -->
+
+    <div class="file-field">
+
+        <div class="input-row">
+
+            <input
+                id="videoPath"
+                placeholder="video.mp4"
+                autocomplete="off"
+            >
+
+            <button
+                type="button"
+                id="browseVideo"
+            >
+                Choose
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- SRT -->
+
+    <div class="file-field">
+
+        <div class="input-row">
+
+            <input
+                id="srtPath"
+                placeholder="subtitle.srt"
+                autocomplete="off"
+            >
+
+            <button
+                type="button"
+                id="browseSrt"
+            >
+                Choose
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- LOAD -->
+
+    <button
+        type="button"
+        class="primary"
+        id="load"
+    >
+        Load Video + Subtitles
+    </button>
+
+
+    <!-- CLEAR -->
+
+    <button
+        type="button"
+        id="clear"
+    >
+        Clear
+    </button>
+
+
+    <!-- DISPLAY MODE -->
+
+    <select
+        id="displayMode"
+        aria-label="Subtitle display"
+    >
+
+        <option value="right">
+            Right side subtitle
+        </option>
+
+        <option value="left">
+            Left side subtitle
+        </option>
+
+        <option value="overlay">
+            On video only
+        </option>
+
+        <option value="both-right">
+            On video and right side
+        </option>
+
+        <option value="both-left">
+            On video and left side
+        </option>
+
+        <option value="karaoke">
+            Karaoke mode
+        </option>
+
+    </select>
+
+</div>
+
+</section>
+
+<!-- =======================================================
+     WORKSPACE
+======================================================== -->
+
+<main
+    id="workspace"
+    class="workspace subtitle-right"
+>
+
+<!-- ===================================================
+     VIDEO
+==================================================== -->
+
+<section class="player">
+
+
+    <div class="video-wrap">
+
+
+        <video
+            id="video"
+            controls
+            preload="metadata"
+            playsinline
+        ></video>
+
+
+        <!-- OVERLAY SUBTITLE -->
+
+        <div
+            id="overlaySub"
+            class="overlay-sub"
+        >
+
+            <span></span>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- VIDEO TOOLBAR -->
+
+    <div class="video-toolbar">
+
+
+        <button
+            type="button"
+            id="playPauseBtn"
+            class="play-btn"
+        >
+            ▶ Play
+        </button>
+
+
+        <button
+            type="button"
+            id="stopBtn"
+            class="stop-btn"
+        >
+            ⏹ Stop
+        </button>
+
+
+        <div class="volume-control">
+
+            <span class="volume-icon">
+                🔊
+            </span>
+
+
+            <input
+                id="volumeBoost"
+                type="range"
+                min="0"
+                max="200"
+                value="100"
+                step="1"
+                aria-label="Volume"
+            >
+
+
+            <span
+                id="volumeValue"
+                class="volume-value"
+            >
+                100%
+            </span>
+
+        </div>
+
+
+        <div
+            id="name"
+            class="video-name"
+            title="No video loaded"
+        >
+            No video loaded
+        </div>
+
+
+        <div
+            id="duration"
+            class="video-time"
+        >
+            00:00
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+<!-- ===================================================
+     KARAOKE DISPLAY
+==================================================== -->
+
+<section
+    id="karaokeDisplay"
+    class="karaoke-display"
+>
+    <div
+        id="karaokePrevious"
+        class="karaoke-context"
+    ></div>
+
+    <div
+        id="karaokeCurrent"
+        class="karaoke-current"
+    >
+        Load an MP4 and its SRT.
+    </div>
+
+    <div
+        id="karaokeNext"
+        class="karaoke-context"
+    ></div>
+
+    <div
+        id="karaokeQueue"
+        class="karaoke-context"
+    ></div>
+
+    <div
+        id="karaokeTime"
+        class="karaoke-time"
+    >
+        0 / 0
+    </div>
+</section>
+
+
+<!-- ===================================================
+     SUBTITLE PANEL
+==================================================== -->
+
+<section
+    class="panel"
+    id="subtitlePanel"
+>
+
+
+    <div class="head">
+
+        <strong>
+            Subtitles
+        </strong>
+
+
+        <span
+            id="count"
+            class="count"
+        >
+            0/0
+        </span>
+
+    </div>
+
+
+    <div
+        id="subs"
+        class="subs"
+    >
+
+        <div class="empty">
+            Load an MP4 and its SRT.
+        </div>
+
+    </div>
+
+
+</section>
+
+</main>
+
+</div>
+
+<script>
+
+(() => {
+
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+const STORAGE_KEY =
+    "create_subs_player_settings_v10";
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const video =
+    document.getElementById("video");
+
+const videoPath =
+    document.getElementById("videoPath");
+
+const srtPath =
+    document.getElementById("srtPath");
+
+const loadBtn =
+    document.getElementById("load");
+
+const clearBtn =
+    document.getElementById("clear");
+
+const playPauseBtn =
+    document.getElementById("playPauseBtn");
+
+const stopBtn =
+    document.getElementById("stopBtn");
+
+const subsEl =
+    document.getElementById("subs");
+
+const count =
+    document.getElementById("count");
+
+const nameEl =
+    document.getElementById("name");
+
+const durationEl =
+    document.getElementById("duration");
+
+const displayMode =
+    document.getElementById("displayMode");
+
+const subtitlePanel =
+    document.getElementById("subtitlePanel");
+
+const workspace =
+    document.getElementById("workspace");
+
+const overlay =
+    document.getElementById("overlaySub");
+
+const overlayText =
+    overlay.querySelector("span");
+
+const volumeBoost =
+    document.getElementById("volumeBoost");
+
+const volumeValue =
+    document.getElementById("volumeValue");
+
+
+/* =========================================================
+   KARAOKE ELEMENTS
+========================================================= */
+
+const karaokeDisplay =
+    document.getElementById(
+        "karaokeDisplay"
+    );
+
+const karaokePrevious =
+    document.getElementById(
+        "karaokePrevious"
+    );
+
+const karaokeCurrent =
+    document.getElementById(
+        "karaokeCurrent"
+    );
+
+const karaokeNext =
+    document.getElementById(
+        "karaokeNext"
+    );
+
+const karaokeQueue =
+    document.getElementById(
+        "karaokeQueue"
+    );
+
+const karaokeTime =
+    document.getElementById(
+        "karaokeTime"
+    );
+
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+let selectedVideoFile = null;
+
+let selectedSrtFile = null;
+
+let videoObjectUrl = null;
+
+let cues = [];
+
+let activeIndex = -1;
+
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audioContext = null;
+
+let gainNode = null;
+
+let sourceNode = null;
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function esc(value) {
+
+    return String(value).replace(
+        /[&<>"']/g,
+
+        character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[character])
+
+    );
+
+}
+
+
+/* =========================================================
+   SRT TIME
+========================================================= */
+
+function sec(value) {
+
+    const parts =
+        value
+            .trim()
+            .replace(",", ".")
+            .split(":")
+            .map(Number);
+
+
+    if (parts.length === 3) {
+
+        return (
+            parts[0] * 3600 +
+            parts[1] * 60 +
+            parts[2]
+        );
+
+    }
+
+
+    if (parts.length === 2) {
+
+        return (
+            parts[0] * 60 +
+            parts[1]
+        );
+
+    }
+
+
+    return 0;
+
+}
+
+
+/* =========================================================
+   FORMAT TIME
+========================================================= */
+
+function fmt(value) {
+
+    value =
+        Math.max(
+            0,
+            Math.floor(
+                Number(value) || 0
+            )
+        );
+
+
+    const hours =
+        Math.floor(
+            value / 3600
+        );
+
+
+    const minutes =
+        Math.floor(
+            (value % 3600) / 60
+        );
+
+
+    const seconds =
+        value % 60;
+
+
+    if (hours > 0) {
+
+        return (
+            String(hours).padStart(2, "0") +
+            ":" +
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0")
+        );
+
+    }
+
+
+    return (
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(seconds).padStart(2, "0")
+    );
+
+}
+
+
+/* =========================================================
+   PARSE SRT
+========================================================= */
+
+function parseSrt(text) {
+
+    const blocks =
+        text
+            .replace(/\r/g, "")
+            .replace(/^\uFEFF/, "")
+            .split(/\n\s*\n/);
+
+
+    const result = [];
+
+
+    for (const block of blocks) {
+
+        const lines =
+            block.split("\n");
+
+
+        const timeIndex =
+            lines.findIndex(
+                line =>
+                    line.includes("-->")
+            );
+
+
+        if (timeIndex < 0)
+            continue;
+
+
+        const match =
+            lines[timeIndex].match(
+                /(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}|\d{1,2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}|\d{1,2}:\d{2}[,.]\d{1,3})/
+            );
+
+
+        if (!match)
+            continue;
+
+
+        const subtitleText =
+            lines
+                .slice(timeIndex + 1)
+                .join("\n")
+                .trim();
+
+
+        if (!subtitleText)
+            continue;
+
+
+        result.push({
+
+            start:
+                sec(match[1]),
+
+            end:
+                sec(match[2]),
+
+            text:
+                subtitleText
+
+        });
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   RENDER SUBTITLES
+========================================================= */
+
+function render() {
+
+    if (!cues.length) {
+
+        subsEl.innerHTML =
+            '<div class="empty">No subtitle entries found.</div>';
+
+        count.textContent =
+            "0/0";
+
+        karaokeCurrent.textContent =
+            "No subtitle entries found.";
+
+        karaokePrevious.textContent =
+            "";
+
+        karaokeNext.textContent =
+            "";
+
+        return;
+
+    }
+
+
+    subsEl.innerHTML =
+        cues
+            .map(
+                (cue, index) => `
+
+                    <div
+                        class="sub"
+                        data-i="${index}"
+                    >
+
+                        <div class="time">
+                            ${fmt(cue.start)}
+                        </div>
+
+                        <div class="text">
+                            ${esc(cue.text).replace(
+                                /\n/g,
+                                "<br>"
+                            )}
+                        </div>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+    subsEl
+        .querySelectorAll(".sub")
+        .forEach(element => {
+
+            element.addEventListener(
+                "click",
+                () => {
+
+                    const index =
+                        Number(
+                            element.dataset.i
+                        );
+
+
+                    video.currentTime =
+                        cues[index].start;
+
+
+                    playVideo();
+
+                }
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   DISPLAY MODE
+========================================================= */
+
+function updateMode() {
+
+    const mode =
+        displayMode.value;
+
+
+    workspace.classList.remove(
+        "subtitle-right",
+        "subtitle-left",
+        "video-only",
+        "karaoke-mode"
+    );
+
+
+    subtitlePanel.style.display =
+        "";
+
+
+    overlay.style.display =
+        "none";
+
+
+    karaokeDisplay.style.display =
+        "none";
+
+
+    if (mode === "right") {
+
+        workspace.classList.add(
+            "subtitle-right"
+        );
+
+    }
+
+
+    else if (mode === "left") {
+
+        workspace.classList.add(
+            "subtitle-left"
+        );
+
+    }
+
+
+    else if (mode === "overlay") {
+
+        workspace.classList.add(
+            "video-only"
+        );
+
+
+        subtitlePanel.style.display =
+            "none";
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+
+    else if (mode === "both-right") {
+
+        workspace.classList.add(
+            "subtitle-right"
+        );
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+
+    else if (mode === "both-left") {
+
+        workspace.classList.add(
+            "subtitle-left"
+        );
+
+
+        overlay.style.display =
+            "block";
+
+    }
+
+
+    else if (mode === "karaoke") {
+
+        workspace.classList.add(
+            "karaoke-mode"
+        );
+
+
+        subtitlePanel.style.display =
+            "none";
+
+
+        overlay.style.display =
+            "none";
+
+
+        karaokeDisplay.style.display =
+            "flex";
+
+    }
+
+
+    updateKaraokeDisplay();
+
+}
+
+
+/* =========================================================
+   KARAOKE WORD COLORING
+========================================================= */
+
+function renderKaraokeWords(text, progress = 0) {
+
+    const words = text
+        .split(/(\s+)/);
+
+    const wordIndexes = [];
+
+    words.forEach((part, index) => {
+        if (!/^\s+$/.test(part) && part.length > 0) {
+            wordIndexes.push(index);
+        }
+    });
+
+    if (!wordIndexes.length) {
+        return esc(text);
+    }
+
+    const currentWord =
+        Math.min(
+            wordIndexes.length - 1,
+            Math.floor(progress * wordIndexes.length)
+        );
+
+    let wordNumber = 0;
+
+    return words
+        .map((part, index) => {
+
+            if (/^\s+$/.test(part)) {
+                return `<span class="karaoke-space">${part}</span>`;
+            }
+
+            const safeWord = esc(part);
+
+            let className = "karaoke-word";
+
+            if (wordNumber < currentWord) {
+                className += " sung";
+            }
+            else if (wordNumber === currentWord) {
+                className += " current";
+            }
+
+            wordNumber++;
+
+            return `
+                <span class="${className}">
+                    ${safeWord}
+                </span>
+            `;
+        })
+        .join("");
+}
+
+
+/* =========================================================
+   KARAOKE DISPLAY
+========================================================= */
+
+function updateKaraokeDisplay() {
+
+    if (!cues.length) {
+
+        karaokeCurrent.textContent =
+            "Load an MP4 and its SRT.";
+
+        karaokePrevious.textContent =
+            "";
+
+        karaokeNext.textContent =
+            "";
+
+        karaokeQueue.textContent =
+            "";
+
+        karaokeTime.textContent =
+            "0 / 0";
+
+        return;
+
+    }
+
+
+    if (activeIndex < 0) {
+
+        karaokeCurrent.textContent =
+            "♪ Ready ♪";
+
+        karaokePrevious.textContent =
+            "";
+
+        karaokeNext.textContent =
+            cues[0].text;
+
+        karaokeQueue.textContent =
+            cues.length > 1
+                ? cues[1].text
+                : "";
+
+        karaokeTime.textContent =
+            `0 / ${cues.length}`;
+
+        return;
+
+    }
+
+
+    const current =
+        cues[activeIndex];
+
+
+    const duration =
+        current.end - current.start;
+
+    const elapsed =
+        video.currentTime - current.start;
+
+    const progress =
+        duration > 0
+            ? Math.max(
+                0,
+                Math.min(1, elapsed / duration)
+            )
+            : 0;
+
+    karaokeCurrent.innerHTML =
+        renderKaraokeWords(
+            current.text,
+            progress
+        );
+
+
+    if (activeIndex > 0) {
+
+        karaokePrevious.innerHTML =
+            esc(cues[activeIndex - 1].text)
+                .replace(/\n/g, "<br>");
+
+    }
+
+    else {
+
+        karaokePrevious.textContent =
+            "";
+
+    }
+
+
+    if (
+        activeIndex <
+        cues.length - 1
+    ) {
+
+        karaokeNext.innerHTML =
+            esc(cues[activeIndex + 1].text)
+                .replace(/\n/g, "<br>");
+
+    }
+
+    else {
+
+        karaokeNext.textContent =
+            "";
+
+    }
+
+    /* Queue lyric: one line after Next */
+    if (activeIndex < cues.length - 2) {
+
+        karaokeQueue.innerHTML =
+            esc(cues[activeIndex + 2].text)
+                .replace(/\n/g, "<br>");
+
+    }
+    else {
+
+        karaokeQueue.textContent =
+            "";
+
+    }
+
+
+    karaokeTime.textContent =
+        `${activeIndex + 1} / ${cues.length}`;
+
+}
+
+
+/* =========================================================
+   AUDIO BOOST SETUP
+========================================================= */
+
+function setupAudioBoost() {
+
+    if (audioContext)
+        return;
+
+
+    try {
+
+        audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+
+        sourceNode =
+            audioContext.createMediaElementSource(
+                video
+            );
+
+
+        gainNode =
+            audioContext.createGain();
+
+
+        sourceNode.connect(
+            gainNode
+        );
+
+
+        gainNode.connect(
+            audioContext.destination
+        );
+
+
+        updateVolumeBoost();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Web Audio setup failed:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   VOLUME BOOST
+========================================================= */
+
+function updateVolumeBoost() {
+
+    const percent =
+        Number(
+            volumeBoost.value
+        );
+
+
+    volumeValue.textContent =
+        `${percent}%`;
+
+
+    if (gainNode) {
+
+        gainNode.gain.value =
+            percent / 100;
+
+    }
+
+
+    video.volume =
+        1;
+
+}
+
+
+/* =========================================================
+   PLAY VIDEO
+========================================================= */
+
+async function playVideo() {
+
+    setupAudioBoost();
+
+
+    if (
+        audioContext &&
+        audioContext.state === "suspended"
+    ) {
+
+        try {
+
+            await audioContext.resume();
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Could not resume audio context:",
+                error
+            );
+
+        }
+
+    }
+
+
+    try {
+
+        await video.play();
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Could not play video:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PLAY / PAUSE
+========================================================= */
+
+playPauseBtn.addEventListener(
+    "click",
+    () => {
+
+        if (video.paused) {
+
+            playVideo();
+
+        }
+
+        else {
+
+            video.pause();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   VIDEO PLAY EVENT
+========================================================= */
+
+video.addEventListener(
+    "play",
+    async () => {
+
+        playPauseBtn.textContent =
+            "⏸ Pause";
+
+
+        setupAudioBoost();
+
+
+        if (
+            audioContext &&
+            audioContext.state === "suspended"
+        ) {
+
+            try {
+
+                await audioContext.resume();
+
+            }
+
+            catch (error) {
+
+                console.warn(
+                    "Could not resume audio context:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        updateVolumeBoost();
+
+    }
+);
+
+
+/* =========================================================
+   VIDEO PAUSE EVENT
+========================================================= */
+
+video.addEventListener(
+    "pause",
+    () => {
+
+        playPauseBtn.textContent =
+            "▶ Play";
+
+    }
+);
+
+
+/* =========================================================
+   STOP
+========================================================= */
+
+stopBtn.addEventListener(
+    "click",
+    () => {
+
+        video.pause();
+
+        video.currentTime = 0;
+
+        playPauseBtn.textContent =
+            "▶ Play";
+
+        activeIndex = -1;
+
+        updateActive();
+
+    }
+);
+
+
+/* =========================================================
+   SAVE SETTINGS
+========================================================= */
+
+function saveSettings() {
+
+    try {
+
+        localStorage.setItem(
+
+            STORAGE_KEY,
+
+            JSON.stringify({
+
+                videoPath:
+                    videoPath.value.trim(),
+
+                srtPath:
+                    srtPath.value.trim(),
+
+                displayMode:
+                    displayMode.value,
+
+                volume:
+                    volumeBoost.value
+
+            })
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Could not save settings.",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOAD SETTINGS
+========================================================= */
+
+function loadSettings() {
+
+    try {
+
+        const raw =
+            localStorage.getItem(
+                STORAGE_KEY
+            );
+
+
+        if (!raw)
+            return;
+
+
+        const settings =
+            JSON.parse(raw);
+
+
+        if (settings.videoPath) {
+
+            videoPath.value =
+                settings.videoPath;
+
+        }
+
+
+        if (settings.srtPath) {
+
+            srtPath.value =
+                settings.srtPath;
+
+        }
+
+
+        if (settings.displayMode) {
+
+            displayMode.value =
+                settings.displayMode;
+
+        }
+
+
+        if (
+            settings.volume !== undefined
+        ) {
+
+            volumeBoost.value =
+                settings.volume;
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Could not restore settings.",
+            error
+        );
+
+    }
+
+
+    updateVolumeBoost();
+
+}
+
+
+/* =========================================================
+   ACTIVE SUBTITLE
+========================================================= */
+
+function updateActive() {
+
+    if (!cues.length)
+        return;
+
+
+    const currentTime =
+        video.currentTime;
+
+
+    let index = -1;
+
+
+    for (
+        let i = 0;
+        i < cues.length;
+        i++
+    ) {
+
+        if (
+            currentTime >= cues[i].start &&
+            currentTime < cues[i].end
+        ) {
+
+            index = i;
+
+            break;
+
+        }
+
+    }
+
+
+    if (index === activeIndex) {
+
+        updateKaraokeDisplay();
+
+        return;
+
+    }
+
+
+    activeIndex =
+        index;
+
+
+    subsEl
+        .querySelectorAll(".sub")
+        .forEach(
+            (element, i) => {
+
+                element.classList.toggle(
+                    "active",
+                    i === index
+                );
+
+            }
+        );
+
+
+    if (index >= 0) {
+
+        count.textContent =
+            `${index + 1}/${cues.length}`;
+
+
+        overlayText.innerHTML =
+            esc(cues[index].text)
+                .replace(
+                    /\n/g,
+                    "<br>"
+                );
+
+
+        const element =
+            subsEl.querySelector(
+                `[data-i="${index}"]`
+            );
+
+
+        if (element) {
+
+            element.scrollIntoView({
+
+                block: "nearest",
+
+                behavior: "smooth"
+
+            });
+
+        }
+
+    }
+
+    else {
+
+        count.textContent =
+            `0/${cues.length}`;
+
+
+        overlayText.textContent =
+            "";
+
+    }
+
+
+    updateKaraokeDisplay();
+
+}
+
+
+/* =========================================================
+   LOAD FILES
+========================================================= */
+
+async function loadFiles() {
+
+    if (!selectedVideoFile)
+        return;
+
+
+    if (!selectedSrtFile)
+        return;
+
+
+    if (videoObjectUrl) {
+
+        URL.revokeObjectURL(
+            videoObjectUrl
+        );
+
+    }
+
+
+    videoObjectUrl =
+        URL.createObjectURL(
+            selectedVideoFile
+        );
+
+
+    video.src =
+        videoObjectUrl;
+
+
+    video.load();
+
+
+    setupAudioBoost();
+
+    updateVolumeBoost();
+
+
+    videoPath.value =
+        selectedVideoFile.name;
+
+
+    nameEl.textContent =
+        selectedVideoFile.name;
+
+
+    try {
+
+        const srtText =
+            await selectedSrtFile.text();
+
+
+        cues =
+            parseSrt(srtText);
+
+
+        activeIndex =
+            -1;
+
+
+        render();
+
+        updateMode();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "SRT error:",
+            error
+        );
+
+
+        cues = [];
+
+        render();
+
+    }
+
+
+    saveSettings();
+
+}
+
+
+/* =========================================================
+   CHOOSE MP4
+========================================================= */
+
+document
+    .getElementById("browseVideo")
+    .addEventListener(
+        "click",
+        () => {
+
+            const input =
+                document.createElement(
+                    "input"
+                );
+
+
+            input.type =
+                "file";
+
+
+            input.accept =
+                "video/mp4,video/*";
+
+
+            input.onchange =
+                () => {
+
+                    if (!input.files.length)
+                        return;
+
+
+                    selectedVideoFile =
+                        input.files[0];
+
+
+                    videoPath.value =
+                        selectedVideoFile.name;
+
+
+                    if (videoObjectUrl) {
+
+                        URL.revokeObjectURL(
+                            videoObjectUrl
+                        );
+
+                    }
+
+
+                    videoObjectUrl =
+                        URL.createObjectURL(
+                            selectedVideoFile
+                        );
+
+
+                    video.src =
+                        videoObjectUrl;
+
+
+                    video.load();
+
+
+                    nameEl.textContent =
+                        selectedVideoFile.name;
+
+
+                    setupAudioBoost();
+
+                    updateVolumeBoost();
+
+                    saveSettings();
+
+                };
+
+
+            input.click();
+
+        }
+    );
+
+
+/* =========================================================
+   CHOOSE SRT
+========================================================= */
+
+document
+    .getElementById("browseSrt")
+    .addEventListener(
+        "click",
+        () => {
+
+            const input =
+                document.createElement(
+                    "input"
+                );
+
+
+            input.type =
+                "file";
+
+
+            input.accept =
+                ".srt,text/plain";
+
+
+            input.onchange =
+                async () => {
+
+                    if (!input.files.length)
+                        return;
+
+
+                    selectedSrtFile =
+                        input.files[0];
+
+
+                    srtPath.value =
+                        selectedSrtFile.name;
+
+
+                    try {
+
+                        const text =
+                            await selectedSrtFile.text();
+
+
+                        cues =
+                            parseSrt(text);
+
+
+                        activeIndex =
+                            -1;
+
+
+                        render();
+
+                        updateKaraokeDisplay();
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "SRT error:",
+                            error
+                        );
+
+                    }
+
+
+                    saveSettings();
+
+                };
+
+
+            input.click();
+
+        }
+    );
+
+
+/* =========================================================
+   LOAD BUTTON
+========================================================= */
+
+loadBtn.addEventListener(
+    "click",
+    loadFiles
+);
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+clearBtn.addEventListener(
+    "click",
+    () => {
+
+        video.pause();
+
+        video.currentTime = 0;
+
+        video.removeAttribute(
+            "src"
+        );
+
+        video.load();
+
+
+        if (videoObjectUrl) {
+
+            URL.revokeObjectURL(
+                videoObjectUrl
+            );
+
+            videoObjectUrl =
+                null;
+
+        }
+
+
+        selectedVideoFile =
+            null;
+
+
+        selectedSrtFile =
+            null;
+
+
+        cues = [];
+
+
+        activeIndex =
+            -1;
+
+
+        render();
+
+
+        count.textContent =
+            "0/0";
+
+
+        nameEl.textContent =
+            "No video loaded";
+
+
+        durationEl.textContent =
+            "00:00";
+
+
+        overlayText.textContent =
+            "";
+
+
+        karaokeCurrent.textContent =
+            "Load an MP4 and its SRT.";
+
+        karaokePrevious.textContent =
+            "";
+
+        karaokeNext.textContent =
+            "";
+
+        karaokeQueue.textContent =
+            "";
+
+        karaokeTime.textContent =
+            "0 / 0";
+
+
+        playPauseBtn.textContent =
+            "▶ Play";
+
+    }
+);
+
+
+/* =========================================================
+   DISPLAY MODE
+========================================================= */
+
+displayMode.addEventListener(
+    "change",
+    () => {
+
+        updateMode();
+
+        saveSettings();
+
+    }
+);
+
+
+/* =========================================================
+   VOLUME
+========================================================= */
+
+volumeBoost.addEventListener(
+    "input",
+    () => {
+
+        setupAudioBoost();
+
+        updateVolumeBoost();
+
+        saveSettings();
+
+    }
+);
+
+
+/* =========================================================
+   VIDEO METADATA
+========================================================= */
+
+video.addEventListener(
+    "loadedmetadata",
+    () => {
+
+        durationEl.textContent =
+            fmt(video.duration);
+
+    }
+);
+
+
+/* =========================================================
+   VIDEO TIME UPDATE
+========================================================= */
+
+video.addEventListener(
+    "timeupdate",
+    updateActive
+);
+
+video.addEventListener(
+    "seeked",
+    updateActive
+);
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+loadSettings();
+
+updateMode();
+
+updateVolumeBoost();
+
+
+})();
+
+</script>
+
+</body>
+
+</html>
