@@ -692,16 +692,25 @@ button:hover {
             No video loaded
         </div>
 
-
-        <div
-            id="duration"
-            class="video-time"
-        >
-            00:00
-        </div>
-
-
     </div>
+
+
+    <div
+        id="duration"
+        class="video-time"
+        style="font-size: 30px;"
+    >
+        Video: 00:00:00,000
+    </div>
+
+    <button
+        type="button"
+        id="copyTimeBtn"
+        title="Copy video time"
+        style="font-size: 30px;"
+    >
+        Copy
+    </button>
 
 
 </section>
@@ -840,6 +849,9 @@ const nameEl =
 
 const durationEl =
     document.getElementById("duration");
+
+const copyTimeBtn =
+    document.getElementById("copyTimeBtn");
 
 const displayMode =
     document.getElementById("displayMode");
@@ -2381,12 +2393,26 @@ video.addEventListener(
 
 video.addEventListener(
     "timeupdate",
-    updateActive
+    () => {
+
+        durationEl.textContent =
+            `Video: ${fmtMs(video.currentTime)}`;
+
+        updateActive();
+
+    }
 );
 
 video.addEventListener(
     "seeked",
-    updateActive
+    () => {
+
+        durationEl.textContent =
+            `Video: ${fmtMs(video.currentTime)}`;
+
+        updateActive();
+
+    }
 );
 
 /* =========================================================
@@ -2401,6 +2427,66 @@ updateVolumeBoost();
 
 
 })();
+
+
+function fmtMs(value) {
+
+    value = Math.max(0, Number(value) || 0);
+
+    const hours =
+        Math.floor(value / 3600);
+
+    const minutes =
+        Math.floor((value % 3600) / 60);
+
+    const seconds =
+        Math.floor(value % 60);
+
+    const milliseconds =
+        Math.floor((value % 1) * 1000);
+
+    return (
+        String(hours).padStart(2, "0") +
+        ":" +
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(seconds).padStart(2, "0") +
+        "," +
+        String(milliseconds).padStart(3, "0")
+    );
+
+}
+
+copyTimeBtn.addEventListener(
+    "click",
+    async () => {
+
+        const time =
+            fmtMs(video.currentTime);
+
+        try {
+
+            await navigator.clipboard.writeText(time);
+
+            copyTimeBtn.textContent = "Copied!";
+
+            setTimeout(() => {
+                copyTimeBtn.textContent = "Copy";
+            }, 1000);
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Could not copy video time:",
+                error
+            );
+
+        }
+
+    }
+);
 
 </script>
 
